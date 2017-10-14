@@ -107,4 +107,20 @@ TEST_CASE("basic") {
         L(list_of(123)(124)),
         L(list_of(125)),
         L(list_of(126))));
+
+    // earse
+    CHECK(!tree.erase(222));
+
+    CHECK(tree.erase(132));
+    verify_tree(tree, I(
+        I(NULL, NULL, L(list_of(131)(133)(134)), NULL),
+        L(list_of(123)(124)),
+        L(list_of(125)),
+        L(list_of(126))));
+    CHECK(tree.erase(125));
+    verify_tree(tree, I(
+        I(NULL, NULL, L(list_of(131)(133)(134)), NULL),
+        L(list_of(123)(124)),
+        NULL,
+        L(list_of(126))));
 }
