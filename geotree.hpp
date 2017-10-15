@@ -1,5 +1,10 @@
+#include <algorithm>
+#include <cfloat>
+#include <stdint.h>
 #include <set>
+#include <vector>
 #include <map>
+#include <math.h>
 #include <utility>
 #include <cassert>
 
@@ -11,6 +16,8 @@ namespace geotree {
     static const float LON_MIN = -LON_MAX;
     static const float LAT_MAX = 85.0;
     static const float LAT_MIN = -LAT_MAX;
+
+    static const double EARTH_RADIUS_IN_METERS = 6372797.560856;
 
     // direction
     enum {
@@ -41,6 +48,7 @@ namespace geotree {
         }
     };
 
+    // node type
     enum { GEONODE_LEAF, GEONODE_INNER };
 
     template<class T>
@@ -99,6 +107,17 @@ namespace geotree {
         }
 
         GeoNode<T> *&get(int dir) {
+            switch (dir) {
+            case D_NW: return this->NW;
+            case D_NE: return this->NE;
+            case D_SE: return this->SE;
+            case D_SW: return this->SW;
+            default:
+                assert(!"unreachable");
+            }
+        }
+
+        const GeoNode<T> *get(int dir) const {
             switch (dir) {
             case D_NW: return this->NW;
             case D_NE: return this->NE;
@@ -188,11 +207,14 @@ namespace geotree {
     template<class T>
     class GeoTree {
     private:
+        typedef GeoNode<T> Node;
+        typedef Node *NodePtr;
+
         GeoNode<T> *root;
         typedef map<T, GeoLonLat> MapType;
         MapType geos;   // TODO: hash map
         uint32_t split_threshold;
-        uint32_t max_depth;
+        uint32_t max_depth;     // TODO: setter and getter
 
         static size_t node_size(const GeoNode<T> *node) {
             return node != NULL ? node->count : 0;
@@ -256,7 +278,207 @@ namespace geotree {
             return true;
         }
 
+        struct Item {
+            T value;
+            float lon;
+            float lat;
+            uint32_t dist;
+
+            Item(const T &value, float lon, float lat)
+                : value(value), lon(lon), lat(lat), dist(0)
+            {}
+
+            Item()
+                : value(), lon(FLT_MAX), lat(FLT_MAX), dist(~uint32_t(0))
+            {}
+
+            bool operator<(const Item &rhs) const {
+                return this->dist < rhs.dist;
+            }
+
+            bool operator==(const Item &rhs) const {
+                return value == rhs.value
+                    && lon == rhs.lon && lat == rhs.lat && dist == rhs.dist;
+            }
+        };
+
+        vector<Item> get_nearby(float lon, float lat, size_t count) {
+            return nearby_impl(GeoLonLat(lon, lat), count);
+        }
+
     private:
+        struct NineBox {
+            typedef const Node *ConstNodePtr;
+            ConstNodePtr NW, N, NE, W, C, E, SW, S, SE;
+
+            NineBox moved(int dir) const {
+                switch (dir) {
+                case D_NW: return NineBox {
+                        get_sub_node(NW, D_SE), // NW
+                        get_sub_node(N,  D_SW), // N
+                        get_sub_node(N,  D_SE), // NE
+                        get_sub_node(W,  D_NE), // W
+                        get_sub_node(C,  D_NW), // C
+                        get_sub_node(C,  D_NE), // E
+                        get_sub_node(W,  D_SE), // SW
+                        get_sub_node(C,  D_SW), // S
+                        get_sub_node(C,  D_SE), // SE
+                    };
+                case D_NE: return NineBox {
+                        get_sub_node(N,  D_SW), // NW
+                        get_sub_node(N,  D_SE), // N
+                        get_sub_node(NE, D_SW), // NE
+                        get_sub_node(C,  D_NW), // W
+                        get_sub_node(C,  D_NE), // C
+                        get_sub_node(E,  D_NW), // E
+                        get_sub_node(C,  D_SW), // SW
+                        get_sub_node(C,  D_SE), // S
+                        get_sub_node(E,  D_SW), // SE
+                    };
+                case D_SE: return NineBox {
+                        get_sub_node(C,  D_NW), // NW
+                        get_sub_node(C,  D_NE), // N
+                        get_sub_node(E,  D_NW), // NE
+                        get_sub_node(C,  D_SW), // W
+                        get_sub_node(C,  D_SE), // C
+                        get_sub_node(E,  D_SW), // E
+                        get_sub_node(S,  D_NW), // SW
+                        get_sub_node(S,  D_NE), // S
+                        get_sub_node(SE, D_NW), // SE
+                    };
+                case D_SW: return NineBox {
+                        get_sub_node(W,  D_NE), // NW
+                        get_sub_node(C,  D_NW), // N
+                        get_sub_node(C,  D_NE), // NE
+                        get_sub_node(W,  D_SE), // W
+                        get_sub_node(C,  D_SW), // C
+                        get_sub_node(C,  D_SE), // E
+                        get_sub_node(SW, D_NE), // SW
+                        get_sub_node(S,  D_NW), // S
+                        get_sub_node(S,  D_NE), // SE
+                    };
+                default:
+                    assert(!"Unreachable");
+                }
+            }
+
+            static ConstNodePtr get_sub_node(ConstNodePtr node, int dir) {
+                if (node == NULL) {
+                    return NULL;
+                }
+                return node->get(dir);
+            }
+        };
+
+        vector<Item> nearby_impl(GeoLonLat lonlat, uint32_t count) {
+            if (count == 0 || this->root == NULL) {
+                vector<Item> empty;
+                return empty;
+            }
+
+            const Node *const r = this->root;
+            NineBox ninebox = {r, r, r, r, r, r, r, r, r};
+            GeoBox box;
+
+            // find smallest center node that is guaranteed to cover required count
+            while (true) {
+                assert(ninebox.C != NULL);
+                if (ninebox.C->is_leaf()) {
+                    break;
+                }
+
+                int dir = box.locate_and_move(lonlat);
+                NineBox new_ninebox = ninebox.moved(dir);
+                if (node_size(new_ninebox.C) < count) {     // new_ninebox.C may be NULL
+                    break;
+                }
+
+                ninebox = new_ninebox;
+            }
+
+            // remove duplicated node
+            const Node **arr = &ninebox.NW;
+            for (size_t i = 1; i < 9; ++i) {
+                for (size_t j = 0; j < i; ++j) {
+                    if (arr[i] == arr[j]) {
+                        arr[i] = NULL;
+                        break;
+                    }
+                }
+            }
+
+            return fetch_sorted_item(arr, 9, lonlat, count);
+        }
+
+        static vector<Item> fetch_sorted_item(const Node **arr, size_t size, GeoLonLat lonlat, uint32_t count) {
+            vector<Item> ans;
+
+            for (size_t i = 0; i < size; ++i) {
+                const Node *node = arr[i];
+                collect_item(arr[i], ans);
+            }
+
+            measure_distance(ans, lonlat);
+            sort_and_truncate(ans, count);
+            return ans;
+        }
+
+        static void collect_item(const Node *node, vector<Item> &data) {
+            if (node == NULL) {
+                return;
+            }
+
+            if (node->is_leaf()) {
+                for (typename Node::MapType::const_iterator it = node->values.begin();
+                    it != node->values.end(); ++it)
+                {
+                    const GeoLonLat &lonlat = it->second;
+                    data.push_back(Item(it->first, lonlat.lon, lonlat.lat));
+                }
+            } else {
+                collect_item(node->NW, data);
+                collect_item(node->NE, data);
+                collect_item(node->SE, data);
+                collect_item(node->SW, data);
+            }
+        }
+
+        static double deg2rad(double deg) {
+            return deg / 180.0 * M_PI;
+        }
+
+        static double get_distance(double lon1d, double lat1d, double lon2d, double lat2d) {
+            double lat1r = deg2rad(lat1d);
+            double lon1r = deg2rad(lon1d);
+            double lat2r = deg2rad(lat2d);
+            double lon2r = deg2rad(lon2d);
+            double u = sin((lat2r - lat1r) / 2);
+            double v = sin((lon2r - lon1r) / 2);
+            return 2.0 * EARTH_RADIUS_IN_METERS *
+                   asin(sqrt(u * u + cos(lat1r) * cos(lat2r) * v * v));
+        }
+
+        static int32_t round(double flt) {
+            return ceil(flt - 0.5);
+        }
+
+        static void measure_distance(vector<Item> &data, GeoLonLat lonlat) {
+            for (size_t i = 0; i < data.size(); ++i) {
+                Item &item = data[i];
+                item.dist = round(get_distance(item.lon, item.lat, lonlat.lon, lonlat.lat));
+            }
+        }
+
+        static void sort_and_truncate(vector<Item> &data, uint32_t count) {
+            // partition by count and truncate
+            if (data.size() > count) {
+                nth_element(data.begin(), data.begin() + count, data.end());
+                data.resize(count);
+            }
+
+            sort(data.begin(), data.end());
+        }
+
         GeoNode<T> *insert_rec(GeoInsertCtx &ctx, GeoNode<T> *node) {
             if (node == NULL) {
                 node = new GeoNode<T>(GEONODE_LEAF);
