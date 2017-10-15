@@ -247,9 +247,13 @@ namespace geotree {
             return this->geos.size();
         }
 
+        static bool is_valid(float lon, float lat) {
+            return GeoLonLat(lon, lat).is_valid();
+        }
+
         bool insert(const T &value, float lon, float lat) {
-            assert(GeoLonLat(lon, lat).is_valid());
-            
+            assert(is_valid(lon, lat));
+
             GeoInsertCtx ctx(value, GeoLonLat(lon, lat));
 
             typename MapType::iterator it = this->geos.find(value);
