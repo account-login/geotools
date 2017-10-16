@@ -135,6 +135,7 @@ vector<Entry> load_file(const string &filename) {
 struct Arguments {
     string file;
     int32_t split;
+    int no_sort;
 };
 
 
@@ -151,6 +152,7 @@ Arguments get_args(int argc, char **argv) {
         static const struct option long_options[] = {
             {"file",        required_argument, 0, 'f'},
             {"split",       required_argument, 0, 's'},
+            {"no-sort",     no_argument,       &args.no_sort, true},
             {0, 0, 0, 0},
         };
 
@@ -158,6 +160,9 @@ Arguments get_args(int argc, char **argv) {
         int c = getopt_long(argc, argv, "f:s:", long_options, &option_index);
 
         switch (c) {
+        case 0:
+            // flags 
+            break;
         case -1:
             // while (optind < argc) {
             //     args.args.push_back(argv[optind++]);
@@ -215,6 +220,10 @@ struct DurationLogger {
 
 int main(int argc, char **argv) {
     Arguments args = get_args(argc, argv);
+    int32_t option = GEO_OPT_NONE;
+    if (args.no_sort) {
+        option |= GEO_NO_SORT;
+    }
 
     info("start loading file '%s'", args.file.c_str());
     vector<Entry> entries = load_file(args.file);
@@ -239,11 +248,13 @@ int main(int argc, char **argv) {
     const size_t QUERY_RUN = 10000;
     vector<size_t> nearby_counts = {1, 10, 50, 100, 200, 500, 1000};
     for (auto nearbys = nearby_counts.begin(); nearbys != nearby_counts.end(); ++nearbys) {
-        DurationLogger dl("running %zu queries for nearby %zu. [split:%u]", QUERY_RUN, *nearbys, args.split);
+        DurationLogger dl(
+            "running %zu queries for nearby %zu. [split:%u][opt:%u]",
+            QUERY_RUN, *nearbys, args.split, option);
         dl.set_reqs(QUERY_RUN);
         for (size_t i = 0; i < QUERY_RUN; ++i) {
             Entry &e = entries[i];
-            vector<Tree::Item> nearby = tree.get_nearby(e.lon, e.lat, *nearbys);
+            vector<Tree::Item> nearby = tree.get_nearby(e.lon, e.lat, *nearbys, option);
             assert(nearby.size() == *nearbys);
         }
     }

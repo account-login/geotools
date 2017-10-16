@@ -211,6 +211,12 @@ namespace geotree {
     };
 
 
+    enum GeoOption {
+        GEO_OPT_NONE = 0,
+        GEO_NO_SORT = 1 << 0,
+    };
+
+
     template<class T>
     class GeoTree {
     private:
@@ -249,6 +255,30 @@ namespace geotree {
             }
         }
 
+        struct Item {
+            T value;
+            float lon;
+            float lat;
+            uint32_t dist;
+
+            Item(const T &value, float lon, float lat)
+                : value(value), lon(lon), lat(lat), dist(0)
+            {}
+
+            Item()
+                : value(), lon(FLT_MAX), lat(FLT_MAX), dist(~uint32_t(0))
+            {}
+
+            bool operator<(const Item &rhs) const {
+                return this->dist < rhs.dist;
+            }
+
+            bool operator==(const Item &rhs) const {
+                return value == rhs.value
+                    && lon == rhs.lon && lat == rhs.lat && dist == rhs.dist;
+            }
+        };
+
         size_t size() const {
             assert(this->geos.size() == node_size(this->root));
             return this->geos.size();
@@ -277,6 +307,10 @@ namespace geotree {
             return !exists;
         }
 
+        bool insert(const Item &item) {
+            return insert(item.value, item.lon, item.lat);
+        }
+
         bool erase(const T &value) {
             typename MapType::iterator it = this->geos.find(value);
             if (it == this->geos.end()) {
@@ -289,32 +323,8 @@ namespace geotree {
             return true;
         }
 
-        struct Item {
-            T value;
-            float lon;
-            float lat;
-            uint32_t dist;
-
-            Item(const T &value, float lon, float lat)
-                : value(value), lon(lon), lat(lat), dist(0)
-            {}
-
-            Item()
-                : value(), lon(FLT_MAX), lat(FLT_MAX), dist(~uint32_t(0))
-            {}
-
-            bool operator<(const Item &rhs) const {
-                return this->dist < rhs.dist;
-            }
-
-            bool operator==(const Item &rhs) const {
-                return value == rhs.value
-                    && lon == rhs.lon && lat == rhs.lat && dist == rhs.dist;
-            }
-        };
-
-        vector<Item> get_nearby(float lon, float lat, size_t count) {
-            return nearby_impl(GeoLonLat(lon, lat), count);
+        vector<Item> get_nearby(float lon, float lat, size_t count, uint32_t option = GEO_OPT_NONE) {
+            return nearby_impl(GeoLonLat(lon, lat), count, option);
         }
 
     private:
@@ -381,7 +391,7 @@ namespace geotree {
             }
         };
 
-        vector<Item> nearby_impl(GeoLonLat lonlat, uint32_t count) {
+        vector<Item> nearby_impl(GeoLonLat lonlat, uint32_t count, uint32_t option) {
             if (count == 0 || this->root == NULL) {
                 vector<Item> empty;
                 return empty;
@@ -418,10 +428,12 @@ namespace geotree {
                 }
             }
 
-            return fetch_sorted_item(arr, 9, lonlat, count);
+            return fetch_items(arr, 9, lonlat, count, option);
         }
 
-        static vector<Item> fetch_sorted_item(const Node **arr, size_t size, GeoLonLat lonlat, uint32_t count) {
+        static vector<Item> fetch_items(
+            const Node **arr, size_t size, GeoLonLat lonlat, uint32_t count, uint32_t option)
+        {
             vector<Item> ans;
 
             for (size_t i = 0; i < size; ++i) {
@@ -429,7 +441,10 @@ namespace geotree {
             }
 
             measure_distance(ans, lonlat);
-            sort_and_truncate(ans, count);
+            truncate_by_distance(ans, count);
+            if ((option & GEO_NO_SORT) == 0) {
+                sort(ans.begin(), ans.end());
+            }
             return ans;
         }
 
@@ -479,14 +494,13 @@ namespace geotree {
             }
         }
 
-        static void sort_and_truncate(vector<Item> &data, uint32_t count) {
+        static void truncate_by_distance(vector<Item> &data, uint32_t count) {
             // partition by count and truncate
+            assert(count > 0);
             if (data.size() > count) {
-                nth_element(data.begin(), data.begin() + count, data.end());
+                nth_element(data.begin(), data.begin() + count - 1, data.end());
                 data.resize(count);
             }
-
-            sort(data.begin(), data.end());
         }
 
         GeoNode<T> *insert_rec(GeoInsertCtx &ctx, GeoNode<T> *node) {

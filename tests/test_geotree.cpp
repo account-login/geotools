@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <vector>
 #include <iostream>
 
@@ -216,6 +217,14 @@ TEST_CASE("basic.read") {
         (Tree::Item(339, 180, 20))
         (Tree::Item(340, -180, 0));
     test_read_perm(data);
+
+    // unsorted
+    Tree tree(1);
+    for (size_t i = 0; i < data.size(); ++i) {
+        tree.insert(data[i]);
+    }
+    vector<Tree::Item> got = tree.get_nearby(1, 2, 100, GEO_NO_SORT);
+    CHECK(!is_sorted(got.begin(), got.end()));
 }
 
 
