@@ -1,5 +1,7 @@
 
 CXXFLAGS += -Wall -Wextra -g
+OPTFLAGS += -O2	# -DNDEBUG
+CXX11FLAGS += -std=c++11
 
 
 test_%: test_%.o catch.o
@@ -10,6 +12,12 @@ test_%.o: test_%.cpp ../%.hpp
 
 catch.o: catch.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+bench_query.o: bench_query.cpp ../geotree.hpp
+	$(CXX) $(CXXFLAGS) $(CXX11FLAGS) $(OPTFLAGS) -c $< -o $@
+
+bench_query: bench_query.o
+	$(CXX) $(CXXFLAGS) $(CXX11FLAGS) $(OPTFLAGS) $^ -o $@
 
 
 .PRECIOUS: test_%.o

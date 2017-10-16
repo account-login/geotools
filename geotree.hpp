@@ -8,6 +8,8 @@
 #include <utility>
 #include <cassert>
 
+#include <boost/unordered_map.hpp>
+
 
 namespace geotree {
     using namespace std;
@@ -18,6 +20,11 @@ namespace geotree {
     static const float LAT_MIN = -LAT_MAX;
 
     static const double EARTH_RADIUS_IN_METERS = 6372797.560856;
+
+// shit
+#ifndef M_PI
+    # define M_PI           3.14159265358979323846  /* pi */
+#endif
 
     // direction
     enum {
@@ -55,8 +62,8 @@ namespace geotree {
     struct GeoNode {
         uint8_t type;
         uint32_t count;
-        typedef map<T, GeoLonLat> MapType;
-        MapType values;   // TODO: hash map
+        typedef boost::unordered_map<T, GeoLonLat> MapType;
+        MapType values;     // TODO: try skip list here
 
         GeoNode *NW;
         GeoNode *NE;
@@ -211,8 +218,8 @@ namespace geotree {
         typedef Node *NodePtr;
 
         GeoNode<T> *root;
-        typedef map<T, GeoLonLat> MapType;
-        MapType geos;   // TODO: hash map
+        typedef boost::unordered_map<T, GeoLonLat> MapType;
+        MapType geos;
         uint32_t split_threshold;
         uint32_t max_depth;     // TODO: setter and getter
 
@@ -418,7 +425,6 @@ namespace geotree {
             vector<Item> ans;
 
             for (size_t i = 0; i < size; ++i) {
-                const Node *node = arr[i];
                 collect_item(arr[i], ans);
             }
 
