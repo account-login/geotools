@@ -61,11 +61,19 @@ void verify_shape(Node *input, Node *expect) {
     if (input->type == GEONODE_LEAF) {
         REQUIRE(input->values.size() == expect->values.size());
 
-        Node::MapType::iterator in = input->values.begin();
-        Node::MapType::iterator ex = expect->values.begin();
-        for (; in != input->values.end(); ++in, ++ex) {
-            CHECK(in->first == ex->first);
+        vector<T> vals;
+        for (auto in = input->values.begin(); in != input->values.end(); ++in) {
+            vals.push_back(in->first);
         }
+        sort(vals.begin(), vals.end());
+
+        vector<T> exvals;
+        for (auto ex = expect->values.begin(); ex != expect->values.end(); ++ex) {
+            exvals.push_back(ex->first);
+        }
+        sort(exvals.begin(), exvals.end());
+
+        CHECK(vals == exvals);
     } else {
         verify_shape(input->NW, expect->NW);
         verify_shape(input->NE, expect->NE);

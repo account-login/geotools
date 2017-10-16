@@ -539,6 +539,7 @@ namespace geotree {
 
             if (node->is_leaf()) {
                 node->must_remove(ctx.value);
+                // remove empty node
                 if (node->count == 0) {
                     delete node;
                     node = NULL;
@@ -549,6 +550,12 @@ namespace geotree {
                 GeoNode<T> *&c = node->get(dir);
                 c = remove_rec(ctx, c);
                 node->update_count();
+                // remove node when count reaches 0
+                if (node->count == 0) {
+                    assert(!node->NW && !node->NE && !node->SE && !node->SW);
+                    delete node;
+                    node = NULL;
+                }
             }
 
             return node;
