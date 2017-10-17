@@ -1,3 +1,5 @@
+#pragma once
+
 #include <algorithm>
 #include <cfloat>
 #include <stdint.h>
@@ -11,7 +13,7 @@
 #include <boost/unordered_map.hpp>
 
 
-namespace geotree {
+namespace geotools {
     using namespace std;
 
     static const float LON_MAX = 180.0;

@@ -11,7 +11,7 @@
 
 
 using namespace std;
-using namespace geotree;
+using namespace geotools;
 
 using boost::shared_ptr;
 using boost::assign::list_of;
