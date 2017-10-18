@@ -24,5 +24,4 @@ bench_query: bench_query.o
 .PHONY: clean
 
 clean:
-	-rm -rf *.o
-	-rm test_ttlmap
+	-rm -rf *.o *.exe

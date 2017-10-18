@@ -90,14 +90,6 @@ void verify_tree(Tree &tree, Node *expect) {
 }
 
 
-TEST_CASE("util.dist") {
-    CHECK(Tree::get_distance(-96.276111, 32.726386, -96.809261, 32.770455) == Approx(50114.9810144546));
-    CHECK(Tree::get_distance(-111.382765, 39.205074, 133.617180, -26.496858) == Approx(13915095.4801221211));
-    CHECK(Tree::get_distance(-111.382765, 39.2, -111.382765, 39.201) == Approx(111.2262999997));
-    CHECK(Tree::get_distance(-180, 0, -90, 0) == Tree::get_distance(-180, 0, -90, 10));
-}
-
-
 TEST_CASE("basic.write") {
     Tree tree(3);
     verify_tree(tree, NULL);
@@ -155,7 +147,7 @@ TEST_CASE("basic.write") {
 void sort_by_dist(vector<Tree::Item> &items, float lon, float lat) {
     for (size_t i = 0; i < items.size(); ++i) {
         Tree::Item &item = items[i];
-        item.dist = Tree::round(Tree::get_distance(item.lon, item.lat, lon, lat));
+        item.dist = geo_round(geo_distance(item.lon, item.lat, lon, lat));
     }
 
     sort(items.begin(), items.end());

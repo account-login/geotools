@@ -12,21 +12,11 @@
 
 #include <boost/unordered_map.hpp>
 
+#include "geoutil.hpp"
+
 
 namespace geotools {
     using namespace std;
-
-    static const float LON_MAX = 180.0;
-    static const float LON_MIN = -LON_MAX;
-    static const float LAT_MAX = 85.0;
-    static const float LAT_MIN = -LAT_MAX;
-
-    static const double EARTH_RADIUS_IN_METERS = 6372797.560856;
-
-// shit
-#ifndef M_PI
-    # define M_PI           3.14159265358979323846  /* pi */
-#endif
 
     // direction
     enum {
@@ -393,6 +383,7 @@ namespace geotools {
             }
         };
 
+        // TODO: const
         vector<Item> nearby_impl(GeoLonLat lonlat, uint32_t count, uint32_t option) {
             if (count == 0 || this->root == NULL) {
                 vector<Item> empty;
@@ -470,29 +461,10 @@ namespace geotools {
             }
         }
 
-        static double deg2rad(double deg) {
-            return deg / 180.0 * M_PI;
-        }
-
-        static double get_distance(double lon1d, double lat1d, double lon2d, double lat2d) {
-            double lat1r = deg2rad(lat1d);
-            double lon1r = deg2rad(lon1d);
-            double lat2r = deg2rad(lat2d);
-            double lon2r = deg2rad(lon2d);
-            double u = sin((lat2r - lat1r) / 2);
-            double v = sin((lon2r - lon1r) / 2);
-            return 2.0 * EARTH_RADIUS_IN_METERS *
-                   asin(sqrt(u * u + cos(lat1r) * cos(lat2r) * v * v));
-        }
-
-        static int32_t round(double flt) {
-            return ceil(flt - 0.5);
-        }
-
         static void measure_distance(vector<Item> &data, GeoLonLat lonlat) {
             for (size_t i = 0; i < data.size(); ++i) {
                 Item &item = data[i];
-                item.dist = round(get_distance(item.lon, item.lat, lonlat.lon, lonlat.lat));
+                item.dist = geo_round(geo_distance(item.lon, item.lat, lonlat.lon, lonlat.lat));
             }
         }
 
