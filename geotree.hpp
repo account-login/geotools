@@ -81,7 +81,7 @@ namespace geotools {
             }
             return this->type == GEONODE_LEAF;
         }
-        
+
         bool add(const T &value, GeoLonLat lonlat) {
             assert(this->is_leaf());
             pair<typename MapType::iterator, bool> itok = this->values.insert(make_pair(value, lonlat));

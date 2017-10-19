@@ -21,6 +21,11 @@ namespace geotools {
         typedef uint32_t KeyType;
         typedef uint32_t Distance;
 
+        struct Entry {
+            Distance radius;
+            uint32_t count;
+        };
+
         struct Stats {
             size_t perfect_hit;
             size_t guess_hit;
@@ -46,7 +51,8 @@ namespace geotools {
                    << "[set_merged:" << set_merged << "][set_total:" << set_total << "]";
                 return ss.str();
             }
-        } stats;
+        };
+        mutable Stats stats;
 
     public:
         GeoDensity(Distance initial)
@@ -55,15 +61,14 @@ namespace geotools {
 
         // TODO: copy constructor
 
-        Distance guess_radius(float lon, float lat) {
+        Distance guess_radius(float lon, float lat, uint32_t count) {
             this->stats.guess_total++;
 
-            vector<GeoType::Item> items = this->geotree.get_nearby(lon, lat, 3);
+            vector<GeoType::Item> items = this->geotree.get_nearby(lon, lat, 5);
             for (vector<GeoType::Item>::iterator it = items.begin(); it != items.end(); ) {
                 KeyType key = it->value;
-                assert(this->key2radius.count(key));
-                Distance radius = this->key2radius[key];
-                if (!is_valid_entry(radius, it->dist)) {
+                assert(this->key2entry.count(key));
+                if (!is_valid_entry(this->key2entry[key], it->dist, count)) {
                     it = items.erase(it);
                 } else {
                     ++it;
@@ -78,16 +83,13 @@ namespace geotools {
                 double weight_sum = 0;
                 double value_sum = 0;
                 for (size_t i = 0; i < items.size(); ++i) {
+                    const Entry &e = this->key2entry[items[i].value];
+                    double ratio = (double)count / e.count;
+                    double radius = sqrt(ratio) * e.radius;
+
                     double dist = items[i].dist;
-                    Distance radius = this->key2radius[items[i].value];
-
-                    if (dist <= 100) {
-                        // too close
-                        this->stats.perfect_hit++;
-                        return radius;
-                    }
-
-                    double weight = 1.0 / (dist * dist);
+                    dist = std::max(dist, 100.0);       // avoid divide by zero
+                    double weight = 1 / (dist * dist) / (1 + 1.0 * abs(log2(ratio)));
                     weight_sum += weight;
                     value_sum += weight * radius;
                 }
@@ -96,29 +98,30 @@ namespace geotools {
             }
         }
 
-        KeyType set_radius(float lon, float lat, Distance radius) {
+        KeyType set_radius(float lon, float lat, Distance radius, uint32_t count) {
             this->stats.set_total++;
 
+            Entry e = {radius, count};
             // try to merge similar entries (re-use key)
             vector<GeoType::Item> items = this->geotree.get_nearby(lon, lat, 1);
             if (!items.empty()) {
                 KeyType item_key = items[0].value;
-                assert(this->key2radius.count(item_key));
-                Distance item_radius = this->key2radius[item_key];
-                if (is_similar_entry(item_radius, radius, items[0].dist)) {
+                assert(this->key2entry.count(item_key));
+                Entry near_entry = this->key2entry[item_key];
+                if (is_similar_entry(e, near_entry, items[0].dist)) {
                     this->stats.set_merged++;
                     return item_key;
                 }
             }
 
             KeyType key = get_key();
-            this->key2radius[key] = radius;
+            this->key2entry.insert(make_pair(key, e));
             this->geotree.insert(key, lon, lat);
             return key;
         }
 
         bool remove(KeyType key) {
-            bool erased = this->key2radius.erase(key);
+            bool erased = this->key2entry.erase(key);
             if (erased) {
                 bool geo_erased = this->geotree.erase(key);
                 assert(geo_erased);
@@ -127,8 +130,8 @@ namespace geotools {
         }
 
         size_t size() const {
-            assert(this->geotree.size() == this->key2radius.size());
-            return this->key2radius.size();
+            assert(this->geotree.size() == this->key2entry.size());
+            return this->key2entry.size();
         }
 
     private:
@@ -137,14 +140,27 @@ namespace geotools {
             return this->seq++;
         }
 
-        bool is_valid_entry(Distance radius, Distance dist) {
+        bool is_valid_entry(const Entry &e, Distance dist, uint32_t count) {
             // TODO: test this
-            return dist < radius * 3;
+            if (e.count > 10 * count || e.count < count / 10) {
+                return false;
+            }
+            if (dist > e.radius * 3) {
+                return false;
+            }
+            return true;
         }
 
-        bool is_similar_entry(Distance r1, Distance r2, Distance dist) {
-            double rr = double(r1) / r2;
+        bool is_similar_entry(const Entry &e1, const Entry &e2, Distance dist) {
+            double r1 = e1.radius;
+            double r2 = e2.radius;
+            double rr = r1 / r2;
             if (rr > 1.2 || rr < 0.8) {
+                return false;
+            }
+
+            double cr = double(e1.count) / e2.count;
+            if (cr > 1.2 || cr < 0.8) {
                 return false;
             }
 
@@ -159,8 +175,8 @@ namespace geotools {
     private:
         Distance initial;
 
-        typedef boost::unordered_map<KeyType, Distance> RadiusMap;
-        RadiusMap key2radius;
+        typedef boost::unordered_map<KeyType, Entry> EntryMap;
+        EntryMap key2entry;
         typedef GeoTree<Distance> GeoType;
         GeoType geotree;
         KeyType seq;

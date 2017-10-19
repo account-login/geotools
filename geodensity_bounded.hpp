@@ -12,7 +12,7 @@ namespace geotools {
             : GeoDensity(initial), limit(limit)
         {}
 
-        KeyType set_radius(float lon, float lat, Distance radius) {
+        KeyType set_radius(float lon, float lat, Distance radius, uint32_t count) {
             // remove old entries
             while (this->limit != 0 && this->size() >= this->limit) {
                 assert(this->size() == this->lru.size());
@@ -20,7 +20,7 @@ namespace geotools {
                 assert(erased);
             }
 
-            KeyType key = GeoDensity::set_radius(lon, lat, radius);
+            KeyType key = GeoDensity::set_radius(lon, lat, radius, count);
             this->lru.insert(key);
             return key;
         }

@@ -251,7 +251,7 @@ void bench_geo_density(
                 int32_t lon, lat;
                 uint32_t radius;
                 tie(lon, lat, radius) = e;
-                den.set_radius(lon, lat, radius);
+                den.set_radius(lon, lat, radius, nearbys);
             }
         }
     }
@@ -286,7 +286,7 @@ void bench_geo_density(
             uint32_t radius;
             tie(lon, lat, radius) = e;
 
-            uint32_t est_radius = den.guess_radius(lon, lat);
+            uint32_t est_radius = den.guess_radius(lon, lat, nearbys);
             double ratio = (double)est_radius / radius;
             double var = abs(log2(ratio));
 
