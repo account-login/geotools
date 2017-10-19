@@ -247,6 +247,8 @@ namespace geotools {
             }
         }
 
+        // TODO: copy constructor
+
         struct Item {
             T value;
             float lon;
@@ -317,6 +319,16 @@ namespace geotools {
 
         vector<Item> get_nearby(float lon, float lat, size_t count, uint32_t option = GEO_OPT_NONE) {
             return nearby_impl(GeoLonLat(lon, lat), count, option);
+        }
+
+        // TODO: optimize
+        uint32_t get_nearby_radius_by_count(float lon, float lat, size_t count) {
+            vector<Item> items = get_nearby(lon, lat, count);
+            if (items.empty()) {
+                return 0;
+            } else {
+                return items.back().dist;
+            }
         }
 
     private:

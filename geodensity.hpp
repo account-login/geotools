@@ -53,6 +53,8 @@ namespace geotools {
             : initial(initial), geotree(3)  // TODO: adjust geotree param
         {}
 
+        // TODO: copy constructor
+
         Distance guess_radius(float lon, float lat) {
             this->stats.guess_total++;
 
@@ -97,7 +99,7 @@ namespace geotools {
         KeyType set_radius(float lon, float lat, Distance radius) {
             this->stats.set_total++;
 
-            // try to merge similar entries
+            // try to merge similar entries (re-use key)
             vector<GeoType::Item> items = this->geotree.get_nearby(lon, lat, 1);
             if (!items.empty()) {
                 KeyType item_key = items[0].value;

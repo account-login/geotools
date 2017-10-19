@@ -13,7 +13,7 @@ test_%.o: test_%.cpp ../%.hpp
 catch.o: catch.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-bench_query.o: bench_query.cpp ../geotree.hpp
+bench_query.o: bench_query.cpp ../geotree.hpp ../geodensity.hpp ../geodensity_bounded.hpp
 	$(CXX) $(CXXFLAGS) $(CXX11FLAGS) $(OPTFLAGS) -c $< -o $@
 
 bench_query: bench_query.o
