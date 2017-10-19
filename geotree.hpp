@@ -519,7 +519,7 @@ namespace geotools {
             return node;
         }
 
-        void split(const GeoBox &box, GeoNode<T> *node) {
+        static void split(const GeoBox &box, GeoNode<T> *node) {
             assert(node->is_leaf());
             for (typename GeoNode<T>::MapType::iterator it = node->values.begin();
                 it != node->values.end(); ++it)
