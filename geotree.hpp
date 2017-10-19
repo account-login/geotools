@@ -317,12 +317,14 @@ namespace geotools {
             return true;
         }
 
-        vector<Item> get_nearby(float lon, float lat, size_t count, uint32_t option = GEO_OPT_NONE) {
+        vector<Item> get_nearby(
+            float lon, float lat, size_t count, uint32_t option = GEO_OPT_NONE) const
+        {
             return nearby_impl(GeoLonLat(lon, lat), count, option);
         }
 
         // TODO: optimize
-        uint32_t get_nearby_radius_by_count(float lon, float lat, size_t count) {
+        uint32_t get_nearby_radius_by_count(float lon, float lat, size_t count) const {
             vector<Item> items = get_nearby(lon, lat, count);
             if (items.empty()) {
                 return 0;
@@ -395,8 +397,7 @@ namespace geotools {
             }
         };
 
-        // TODO: const
-        vector<Item> nearby_impl(GeoLonLat lonlat, uint32_t count, uint32_t option) {
+        vector<Item> nearby_impl(GeoLonLat lonlat, uint32_t count, uint32_t option) const {
             if (count == 0 || this->root == NULL) {
                 vector<Item> empty;
                 return empty;

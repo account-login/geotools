@@ -61,14 +61,14 @@ namespace geotools {
 
         // TODO: copy constructor
 
-        Distance guess_radius(float lon, float lat, uint32_t count) {
+        Distance guess_radius(float lon, float lat, uint32_t count) const {
             this->stats.guess_total++;
 
             vector<GeoType::Item> items = this->geotree.get_nearby(lon, lat, 5);
             for (vector<GeoType::Item>::iterator it = items.begin(); it != items.end(); ) {
                 KeyType key = it->value;
                 assert(this->key2entry.count(key));
-                if (!is_valid_entry(this->key2entry[key], it->dist, count)) {
+                if (!is_valid_entry(this->key2entry.find(key)->second, it->dist, count)) {
                     it = items.erase(it);
                 } else {
                     ++it;
@@ -83,7 +83,7 @@ namespace geotools {
                 double weight_sum = 0;
                 double value_sum = 0;
                 for (size_t i = 0; i < items.size(); ++i) {
-                    const Entry &e = this->key2entry[items[i].value];
+                    const Entry &e = this->key2entry.find(items[i].value)->second;
                     double ratio = (double)count / e.count;
                     double radius = sqrt(ratio) * e.radius;
 
@@ -140,7 +140,7 @@ namespace geotools {
             return this->seq++;
         }
 
-        bool is_valid_entry(const Entry &e, Distance dist, uint32_t count) {
+        static bool is_valid_entry(const Entry &e, Distance dist, uint32_t count) {
             // TODO: test this
             if (e.count > 10 * count || e.count < count / 10) {
                 return false;
@@ -151,7 +151,7 @@ namespace geotools {
             return true;
         }
 
-        bool is_similar_entry(const Entry &e1, const Entry &e2, Distance dist) {
+        static bool is_similar_entry(const Entry &e1, const Entry &e2, Distance dist) {
             double r1 = e1.radius;
             double r2 = e2.radius;
             double rr = r1 / r2;

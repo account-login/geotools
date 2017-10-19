@@ -4,6 +4,16 @@ OPTFLAGS += -O2	# -DNDEBUG
 CXX11FLAGS += -std=c++11
 
 
+ALLTESTS = geoutil geotree geodensity lruset geodensity_bounded
+TEST_BINS = $(addprefix test_, $(ALLTESTS))
+
+all: $(TEST_BINS) bench_query
+
+run_test_%: test_%
+	./$< -d yes
+
+run_test: $(addprefix run_test_, $(ALLTESTS))
+
 test_%: test_%.o catch.o
 	$(CXX) $(CXXFLAGS) $^ -o $@
 
