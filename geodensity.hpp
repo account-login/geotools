@@ -90,7 +90,7 @@ namespace geotools {
                     double radius = sqrt(ratio) * e.radius;
 
                     double dist = items[i].dist;
-                    dist = std::max(dist, 100.0);       // avoid divide by zero
+                    dist = std::max(dist, 10.0);        // avoid divide by zero
                     double weight = 1 / (dist * dist) / (1 + 1.0 * abs(log2(ratio)));
                     weight_sum += weight;
                     value_sum += weight * radius;
