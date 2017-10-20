@@ -34,8 +34,9 @@ namespace geotools {
         }
 
     private:
-        size_t limit = 0;
+        size_t limit;
         LRUSet<KeyType> lru;
     };
 
+    typedef GeoDensityTSAdaptor<GeoDensityBounded> GeoDensityBoundedTS;
 }

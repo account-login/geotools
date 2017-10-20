@@ -8,6 +8,7 @@
 #include <float.h>
 
 #include <boost/unordered_map.hpp>
+#include <boost/thread/mutex.hpp>
 
 #include "geotree.hpp"
 #include "geoutil.hpp"
@@ -26,6 +27,7 @@ namespace geotools {
             uint32_t count;
         };
 
+        // TODO: update stats
         struct Stats {
             size_t perfect_hit;
             size_t guess_hit;
@@ -134,6 +136,14 @@ namespace geotools {
             return this->key2entry.size();
         }
 
+        Stats get_stats() const {
+            return this->stats;
+        }
+
+        Stats pop_stats() const {
+            return this->stats.reset();
+        }
+
     private:
         // XXX: key is not guanranteed to be unique
         KeyType get_key() {
@@ -181,4 +191,53 @@ namespace geotools {
         GeoType geotree;
         KeyType seq;
     };
+
+
+    template <class T>
+    class GeoDensityTSAdaptor {
+    public:
+        typedef typename T::Distance Distance;
+        typedef typename T::KeyType KeyType;
+        typedef typename T::Stats Stats;
+
+        GeoDensityTSAdaptor(Distance initial)
+            : geoden(initial)
+        {}
+
+        Distance guess_radius(float lon, float lat, uint32_t count) const {
+            boost::mutex::scoped_lock sl(this->mutex);
+            return geoden.guess_radius(lon, lat, count);
+        }
+
+        KeyType set_radius(float lon, float lat, Distance radius, uint32_t count) {
+            boost::mutex::scoped_lock sl(this->mutex);
+            return geoden.set_radius(lon, lat, radius, count);
+        }
+
+        bool remove(KeyType key) {
+            boost::mutex::scoped_lock sl(this->mutex);
+            return geoden.remove(key);
+        }
+
+        size_t size() const {
+            boost::mutex::scoped_lock sl(this->mutex);
+            return geoden.size();
+        }
+
+        Stats get_stats() const {
+            boost::mutex::scoped_lock sl(this->mutex);
+            return geoden.get_stats();
+        }
+
+        Stats pop_stats() const {
+            boost::mutex::scoped_lock sl(this->mutex);
+            return geoden.pop_stats();
+        }
+
+    private:
+        T geoden;
+        mutable boost::mutex mutex;
+    };
+
+    typedef GeoDensityTSAdaptor<GeoDensity> GeoDensityTS;
 }

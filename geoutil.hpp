@@ -18,11 +18,11 @@ namespace geotools {
 #endif
 
 
-    double deg2rad(double deg) {
+    inline double deg2rad(double deg) {
         return deg / 180.0 * M_PI;
     }
 
-    double geo_distance(double lon1d, double lat1d, double lon2d, double lat2d) {
+    inline double geo_distance(double lon1d, double lat1d, double lon2d, double lat2d) {
         double lat1r = deg2rad(lat1d);
         double lon1r = deg2rad(lon1d);
         double lat2r = deg2rad(lat2d);
@@ -33,7 +33,7 @@ namespace geotools {
             asin(sqrt(u * u + cos(lat1r) * cos(lat2r) * v * v));
     }
 
-    int32_t geo_round(double flt) {
+    inline int32_t geo_round(double flt) {
         return ceil(flt - 0.5);
     }
 
