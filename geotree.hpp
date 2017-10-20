@@ -157,7 +157,7 @@ namespace geotools {
             assert(this->contains(lonlat));
 
             int dir = D_NONE;
-            
+
             float WE = (W + E) / 2.0;
             if (lonlat.lon < WE) {
                 dir |= D_W;
@@ -230,12 +230,12 @@ namespace geotools {
             GeoLonLat lonlat;
             GeoBox box;
             uint32_t depth;
-    
+
             GeoInsertCtx(const T &value, GeoLonLat lonlat)
                 : value(value), lonlat(lonlat), box(), depth(0)
             {}
         };
-    
+
     public:
         GeoTree(uint32_t split_threshold = 128)
             : root(NULL), geos(), split_threshold(split_threshold), max_depth(16)   // less than 1km
