@@ -27,16 +27,14 @@ namespace geotools {
             uint32_t count;
         };
 
-        // TODO: update stats
         struct Stats {
-            size_t perfect_hit;
             size_t guess_hit;
             size_t guess_total;
             size_t set_merged;
             size_t set_total;
 
             Stats()
-                : perfect_hit(0), guess_hit(0), guess_total(0), set_merged(0), set_total(0)
+                : guess_hit(0), guess_total(0), set_merged(0), set_total(0)
             {}
 
             Stats reset() {
@@ -48,7 +46,7 @@ namespace geotools {
             string repr() const {
                 stringstream ss;
                 double hit_ratio = double(guess_hit) / guess_total;
-                ss << "[hit_ratio:" << hit_ratio << "][perfect_hit:" << perfect_hit << "]"
+                ss << "[hit_ratio:" << hit_ratio << "]"
                    << "[guess_hit:" << guess_hit << "][guess_total:" << guess_total << "]"
                    << "[set_merged:" << set_merged << "][set_total:" << set_total << "]";
                 return ss.str();
