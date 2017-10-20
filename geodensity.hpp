@@ -192,52 +192,51 @@ namespace geotools {
 
 
     template <class T>
-    class GeoDensityTSAdaptor {
+    class GeoDensityTSAdaptor : public T {
     public:
         typedef typename T::Distance Distance;
         typedef typename T::KeyType KeyType;
         typedef typename T::Stats Stats;
 
         GeoDensityTSAdaptor(Distance initial)
-            : geoden(initial)
+            : T(initial)
         {}
 
         Distance guess_radius(float lon, float lat, uint32_t count) const {
             boost::mutex::scoped_lock sl(this->mutex);
-            return geoden.guess_radius(lon, lat, count);
+            return T::guess_radius(lon, lat, count);
         }
 
         KeyType set_radius(float lon, float lat, Distance radius, uint32_t count) {
             boost::mutex::scoped_lock sl(this->mutex);
-            return geoden.set_radius(lon, lat, radius, count);
+            return T::set_radius(lon, lat, radius, count);
         }
 
         bool remove(KeyType key) {
             boost::mutex::scoped_lock sl(this->mutex);
-            return geoden.remove(key);
+            return T::remove(key);
         }
 
         size_t size() const {
             boost::mutex::scoped_lock sl(this->mutex);
-            return geoden.size();
+            return T::size();
         }
 
         Stats get_stats() const {
             boost::mutex::scoped_lock sl(this->mutex);
-            return geoden.get_stats();
+            return T::get_stats();
         }
 
         Stats pop_stats() const {
             boost::mutex::scoped_lock sl(this->mutex);
-            return geoden.pop_stats();
+            return T::pop_stats();
         }
 
         T &unwrap() {
-            return geoden;
+            return *this;
         }
 
     private:
-        T geoden;
         mutable boost::mutex mutex;
     };
 
