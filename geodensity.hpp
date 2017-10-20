@@ -234,6 +234,10 @@ namespace geotools {
             return geoden.pop_stats();
         }
 
+        T &unwrap() {
+            return geoden;
+        }
+
     private:
         T geoden;
         mutable boost::mutex mutex;
