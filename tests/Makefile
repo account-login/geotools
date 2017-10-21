@@ -2,6 +2,7 @@
 CXXFLAGS += -Wall -Wextra -g
 OPTFLAGS += -O2	# -DNDEBUG
 CXX11FLAGS += -std=c++11
+LDFLAGS += -lboost_system -lboost_thread
 
 
 ALLTESTS = geoutil geotree geodensity lruset geodensity_bounded
@@ -15,7 +16,7 @@ run_test_%: test_%
 run_test: $(addprefix run_test_, $(ALLTESTS))
 
 test_%: test_%.o catch.o
-	$(CXX) $(CXXFLAGS) $^ -o $@
+	$(CXX) $(CXXFLAGS) $^ $(LDFLAGS) -o $@
 
 test_%.o: test_%.cpp ../%.hpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
@@ -27,7 +28,7 @@ bench_query.o: bench_query.cpp ../geotree.hpp ../geodensity.hpp ../geodensity_bo
 	$(CXX) $(CXXFLAGS) $(CXX11FLAGS) $(OPTFLAGS) -c $< -o $@
 
 bench_query: bench_query.o
-	$(CXX) $(CXXFLAGS) $(CXX11FLAGS) $(OPTFLAGS) $^ -o $@
+	$(CXX) $(CXXFLAGS) $(CXX11FLAGS) $(OPTFLAGS) $^ $(LDFLAGS) -o $@
 
 
 .PRECIOUS: test_%.o
