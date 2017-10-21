@@ -76,7 +76,7 @@ struct Time {
                 buf.resize(buf.size() * 2);
             }
         } while (count == 0);
-    
+
         return string(buf.data());
     }
 
@@ -166,7 +166,7 @@ Arguments get_args(int argc, char **argv) {
 
         switch (c) {
         case 0:
-            // flags 
+            // flags
             break;
         case -1:
             while (optind < argc) {
@@ -325,19 +325,23 @@ int main(int argc, char **argv) {
     vector<Entry> entries = load_file(args.file);
     info("loaded %zu entries", entries.size());
 
-
     // insertion
     Tree tree(args.split);
-    for (size_t i = 0; i < entries.size(); ++i) {
-        Entry &e = entries[i];
-        if (!tree.is_valid(e.lon, e.lat)) {
-            err("bad entry: (%f, %f)", e.lon, e.lat);
-            continue;
-        }
+    {
+        DurationLogger dl("inserting %zu entries. [split:%u]", entries.size(), args.split);
+        dl.set_reqs(entries.size());
 
-        tree.insert(e.uid, e.lon, e.lat);
+        for (size_t i = 0; i < entries.size(); ++i) {
+            Entry &e = entries[i];
+            if (!tree.is_valid(e.lon, e.lat)) {
+                err("bad entry: (%f, %f)", e.lon, e.lat);
+                continue;
+            }
+
+            tree.insert(e.uid, e.lon, e.lat);
+        }
+        info("inserted %zu unique entries of %zu input", tree.size(), entries.size());
     }
-    info("inserted %zu unique entries", tree.size());
 
     const size_t QUERY_RUN = 10000;
     vector<size_t> nearby_counts = {1, 10, 50, 100, 200, 500, 1000};
