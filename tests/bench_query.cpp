@@ -13,6 +13,9 @@
 
 #include <boost/algorithm/string/replace.hpp>
 
+#define CATCH_CONFIG_RUNNER
+#include "catch.h"
+
 #include "string_fmt.hpp"
 #include "../geotree.hpp"
 #include "../geodensity_bounded.hpp"
@@ -60,7 +63,7 @@ struct Time {
         return Time(tv.tv_sec, tv.tv_usec);
     }
 
-    string str(const string &fmt = "%Y-%m-%d_%H:%M:%S.%f") const {
+    string str(const string &fmt = "%Y-%m-%d %H:%M:%S.%f") const {
         struct tm stm;
         time_t ts = this->seconds;
         gmtime_r(&ts, &stm);
@@ -314,6 +317,14 @@ void bench_geo_density(
 }
 
 
+Tree *g_tree = NULL;
+
+TEST_CASE("verify") {
+    REQUIRE(g_tree != NULL);
+    g_tree->verify();
+}
+
+
 int main(int argc, char **argv) {
     Arguments args = get_args(argc, argv);
     int32_t option = GEO_OPT_NONE;
@@ -341,6 +352,19 @@ int main(int argc, char **argv) {
             tree.insert(e.uid, e.lon, e.lat);
         }
         info("inserted %zu unique entries of %zu input", tree.size(), entries.size());
+    }
+
+    if (args.tests.count("verify")) {
+        g_tree = &tree;
+        info("verifying tree structure");
+        try {
+            const char *const c_args[4] = {"verify", "-d", "yes", NULL};
+            int result = Catch::Session().run(3, c_args);
+            info("verifying tree structure %s, result: %d", result == 0 ? "success" : "fail", result);
+        } catch (exception &exc) {
+            err("exception caught: %s", exc.what());
+            exit(4);
+        }
     }
 
     const size_t QUERY_RUN = 10000;
