@@ -403,8 +403,11 @@ namespace geotools {
                 return empty;
             }
 
-            const Node *const r = this->root;
-            NineBox ninebox = {r, r, r, r, r, r, r, r, r};
+            NineBox ninebox = {
+                NULL,       NULL,       NULL,
+                this->root, this->root, this->root,
+                NULL,       NULL,       NULL,
+            };
             GeoBox box;
 
             // find smallest center node that is guaranteed to cover required count
