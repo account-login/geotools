@@ -18,35 +18,6 @@
 namespace geotools {
     using namespace std;
 
-    // direction
-    enum {
-        D_NONE = 0,
-        D_W = 1 << 0,
-        D_E = 1 << 1,
-        D_N = 1 << 2,
-        D_S = 1 << 3,
-        D_NW = D_N | D_W,
-        D_NE = D_N | D_E,
-        D_SE = D_S | D_E,
-        D_SW = D_S | D_W,
-    };
-
-
-    struct GeoLonLat {
-        float lon;
-        float lat;
-
-        GeoLonLat(float lon, float lat) : lon(lon), lat(lat) {}
-
-        bool operator==(const GeoLonLat &rhs) const {
-            return lon == rhs.lon && lat == rhs.lat;
-        }
-
-        bool is_valid() {
-            return LON_MIN <= lon && lon <= LON_MAX && LAT_MIN <= lat && lat <= LAT_MAX;
-        }
-    };
-
     // node type
     enum { GEONODE_LEAF, GEONODE_INNER };
 
@@ -132,77 +103,6 @@ namespace geotools {
         }
     };
 
-    struct GeoBox {
-        float W, E, N, S;
-
-        GeoBox() : W(LON_MIN), E(LON_MAX), N(LAT_MAX), S(LAT_MIN) {}
-        GeoBox(float w, float e, float n, float s) : W(w), E(e), N(n), S(s) {}
-
-        bool contains(GeoLonLat lonlat) const {
-            return W <= lonlat.lon && lonlat.lon <= E && S <= lonlat.lat && lonlat.lat <= N;
-        }
-
-        GeoBox get(int dir) const {
-            switch (dir) {
-            case D_NW: return GeoBox(W, (W + E) / 2.0, N, (N + S) / 2.0);
-            case D_NE: return GeoBox((W + E) / 2.0, E, N, (N + S) / 2.0);
-            case D_SE: return GeoBox((W + E) / 2.0, E, (N + S) / 2.0, S);
-            case D_SW: return GeoBox(W, (W + E) / 2.0, (N + S) / 2.0, S);
-            default:
-                assert(!"unreachable");
-            }
-        }
-
-        int locate(GeoLonLat lonlat) const {
-            assert(this->contains(lonlat));
-
-            int dir = D_NONE;
-
-            float WE = (W + E) / 2.0;
-            if (lonlat.lon < WE) {
-                dir |= D_W;
-            } else {
-                dir |= D_E;
-            }
-
-            float NS =  (N + S) / 2.0;
-            if (lonlat.lat < NS) {
-                dir |= D_S;
-            } else {
-                dir |= D_N;
-            }
-
-            return dir;
-        }
-
-        int locate_and_move(GeoLonLat lonlat) {
-            assert(this->contains(lonlat));
-
-            int dir = D_NONE;
-
-            float WE = (W + E) / 2.0;
-            if (lonlat.lon < WE) {
-                dir |= D_W;
-                E = WE;
-            } else {
-                dir |= D_E;
-                W = WE;
-            }
-
-            float NS =  (N + S) / 2.0;
-            if (lonlat.lat < NS) {
-                dir |= D_S;
-                N = NS;
-            } else {
-                dir |= D_N;
-                S = NS;
-            }
-
-            return dir;
-        }
-    };
-
-
     enum GeoOption {
         GEO_OPT_NONE = 0,
         GEO_NO_SORT = 1 << 0,
@@ -279,7 +179,8 @@ namespace geotools {
         }
 
         static bool is_valid(float lon, float lat) {
-            return GeoLonLat(lon, lat).is_valid();
+            return LON_MIN <= lon && lon <= LON_MAX
+                && GEOTREE_LAT_MIN <= lat && lat <= GEOTREE_LAT_MAX;
         }
 
         bool insert(const T &value, float lon, float lat) {
@@ -599,7 +500,7 @@ namespace geotools {
             } else {
                 CHECK(node->count
                     == node_size(node->NW) + node_size(node->NE)
-                    + node_size(node->SE) + node_size(node->SW));
+                     + node_size(node->SE) + node_size(node->SW));
                 this->verify_node(node->NW, box.get(D_NW));
                 this->verify_node(node->NE, box.get(D_NE));
                 this->verify_node(node->SE, box.get(D_SE));
