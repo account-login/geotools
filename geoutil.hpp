@@ -24,10 +24,10 @@ namespace geotools {
 
     enum Direction {
         D_NONE = 0,
-        D_W = 1 << 0,
-        D_E = 1 << 1,
-        D_N = 1 << 2,
-        D_S = 1 << 3,
+        D_W = 1 << 0,   // 1
+        D_E = 1 << 1,   // 2
+        D_N = 1 << 2,   // 4
+        D_S = 1 << 3,   // 8
         D_NW = D_N | D_W,
         D_NE = D_N | D_E,
         D_SE = D_S | D_E,

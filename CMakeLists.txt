@@ -19,7 +19,7 @@ add_executable(bench_query
     geotree.hpp
     geodensity.hpp
     geodensity_bounded.hpp
-#    edgetree.cpp
+    edgetree.cpp
 )
 target_link_libraries(bench_query
     boost_system
@@ -40,10 +40,10 @@ add_executable(test_geotree
     $<TARGET_OBJECTS:CatchMain>
 )
 
-#add_executable(test_edgetree
-#    tests/test_edgetree.cpp
-#    $<TARGET_OBJECTS:CatchMain>
-#)
+add_executable(test_edgetree
+    tests/test_edgetree.cpp
+    $<TARGET_OBJECTS:CatchMain>
+)
 
 add_executable(test_geodensity
     tests/test_geodensity.cpp
