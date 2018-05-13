@@ -86,27 +86,29 @@ namespace geotools {
         return D_W | D_E;
     }
 
+    // line 是一条不平行于经线的圆弧，可能被纬线 NS 分割。
+    // line 所在的圆跟纬线 NS 有 3 种关系：不相交，有两个交点，相切
+    // line 这段圆弧被纬线 NS 分割有 5 种情况：
+    //      1. 不相交，line 要么在 NS 南边，要么在北边
+    //      1. 被割成南北 2 段
+    //      2. 被割成 3 段，如果 line 在北半球，两头在南边，中间在北边，如果 line 在南半球，方向相反
+    //      3. 相切，当成不相交处理
+    //      4. 重合，NS 是赤道的情况，也当成不相交处理
     static void cut_ns_ex(const GeoLine &line, float NS, uint32_t flags[3], GeoLine lines[3])
     {
         flags[0] = flags[1] = flags[2] = D_NONE;
 
-        if (line.src.lat == line.dst.lat) {
-            // special case: horizontal line
-            flags[0] = line.src.lat >= NS ? D_N : D_S;
-            lines[0] = line;
-            return;
-        }
-
         GeoLonLat np = line.src.lat < line.dst.lat ? line.dst : line.src;
         GeoLonLat sp = line.src.lat < line.dst.lat ? line.src : line.dst;
-        assert(np.lat != sp.lat);
         GeoLonLat wp = line.src.lon < line.dst.lon ? line.src : line.dst;
         GeoLonLat ep = line.src.lon < line.dst.lon ? line.dst : line.src;
 
         double a, b;
         calc_ab(line, a, b);
 
+        // 两个交点的经度
         float A_1_deg = NAN, A_2_deg = NAN;
+        // 表示 A_1, A_2 是否在 line 上
         bool A_1_ok = false, A_2_ok = false;
 
         // tan(B) = a * cos(A) + b * sin(A)
@@ -116,20 +118,21 @@ namespace geotools {
         //                        a + tan(B)                a + tan(B)
         double tan_B = tan(deg2rad(NS));
         double c2 = a*a + b*b - tan_B*tan_B;
+        // c2 > 0 说明 line 所在的圆跟 NS 有两个交点
+        // c2 == 0 说明 line 所在的圆跟 NS 相切，当成不相交处理
+        // c2 == 0 也包含了 line 所在的圆跟 NS 重合，NS 是赤道的情况，也当成不相交处理
         if (c2 > 0) {
-            // A have 2 solutions
-            // NOTE: the 1 solutions case is discarded
             double c1 = sqrt(c2);
             double A_1 = 2 * atan((b + c1) / (a + tan_B));
             double A_2 = 2 * atan((b - c1) / (a + tan_B));
+            // TODO: check A_1, A_2 isnan
             double A_1_deg_d = rad2deg(A_1);
             double A_2_deg_d = rad2deg(A_2);
-            // is solutions on the arc?
             A_1_ok = wp.lon < A_1_deg_d && A_1_deg_d < ep.lon;
             A_2_ok = wp.lon < A_2_deg_d && A_2_deg_d < ep.lon;
             A_1_deg = (float)A_1_deg_d;
             A_2_deg = (float)A_2_deg_d;
-            // NOTE: it is possible that A_1_deg == A_2_deg due to limited precision
+            // 可能精度不足，导致 A_1_deg == A_2_deg，当成相切处理
             if (A_1_deg == A_2_deg) {
                 A_1_ok = A_2_ok = false;
             }
@@ -139,7 +142,7 @@ namespace geotools {
         GeoLonLat cross_2 = GeoLonLat(A_2_deg, NS);
 
         if (A_1_ok && A_2_ok) {
-            // line is splited to 3 segments by NS
+            // 3 segments
             assert(NS != 0);
 
             GeoLonLat wap = A_1_deg < A_2_deg ? cross_1 : cross_2;
@@ -160,8 +163,9 @@ namespace geotools {
             lines[2].src = eap;
             lines[2].dst = ep;
         } else if (!A_1_ok && !A_2_ok) {
-            // line is not splited or tangent to NS
-            // NOTE: using mid_ns instead of sp.lat because sp may be slightly off the box
+            // 全部在南北，或者全部在北边
+            // 由于计算有误差，可能这个圆弧在大部分北边，南边稍微有一段，但是算出交点却不足圆弧内部
+            // 导致应该被分割的圆弧没有被分割，所以判断它在哪边时，不能用圆弧两端的纬度
             float mid_ns = (np.lat + sp.lat) / 2;
             flags[0] = NS <= mid_ns ? D_N : D_S;
             lines[0] = line;
