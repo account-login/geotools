@@ -24,10 +24,16 @@ namespace geotools {
         return node;
     }
 
-    static void calc_ab(const GeoLine &line, double &a, double &b) {
-        // a * x1 + b * y1 = z1
-        // a * x2 + b * y2 = z2
+    // 计算 line 跟原点组成的平面，line 不能跟经线平行
+    // a * x1 + b * y1 = z1
+    // a * x2 + b * y2 = z2
 
+    // 直角坐标转经纬度
+    // A 是经度，B 是纬度
+    // Z = sin(B),
+    // X = cos(B) * cos(A),
+    // Y = cos(B) * sin(A),
+    static void calc_ab(const GeoLine &line, double &a, double &b) {
         const GeoLonLat &p1 = line.src;
         const GeoLonLat &p2 = line.dst;
         assert(p1.lon != p2.lon);
@@ -53,17 +59,20 @@ namespace geotools {
         b = (cos_a2 * tan_b1 - cos_a1 * tan_b2) / sin_a1_subs_a2;
     }
 
+    // 经线跟 line 所在圆相交的纬度
     static float cross_with_lon(const GeoLine &line, float lon) {
         double a, b;
         calc_ab(line, a, b);
 
-        // tan(B) = a * cos(A) + b * sin(A)
+        // 由 a * x + b * y = z 平面
+        // 得到 tan(B) = a * cos(A) + b * sin(A)
         double A = deg2rad(lon);
         double B = atan(a * cos(A) + b * sin(A));
 
         return (float)rad2deg(B);   // lat
     }
 
+    // 将圆弧 line 用经线 WE 切割成东西两段
     static uint32_t cut_we(const GeoLine &line, float WE, GeoLine &w, GeoLine &e) {
         GeoLonLat wp = line.src.lon < line.dst.lon ? line.src : line.dst;
         GeoLonLat ep = line.src.lon < line.dst.lon ? line.dst : line.src;
@@ -111,8 +120,10 @@ namespace geotools {
         // 表示 A_1, A_2 是否在 line 上
         bool A_1_ok = false, A_2_ok = false;
 
+        // line 所在平面
         // tan(B) = a * cos(A) + b * sin(A)
         //
+        // 通过纬度 B 计算经度 A
         //            b ± sqrt(a*a + b*b - tan(B)*tan(B))     b ± c1
         // tan(A/2) = ----------------------------------- = ----------
         //                        a + tan(B)                a + tan(B)
@@ -122,14 +133,22 @@ namespace geotools {
         // c2 == 0 说明 line 所在的圆跟 NS 相切，当成不相交处理
         // c2 == 0 也包含了 line 所在的圆跟 NS 重合，NS 是赤道的情况，也当成不相交处理
         if (c2 > 0) {
+            // 只有 c2 >= 0 且 line 跟 NS 不重合才能计算 A_1, A_2
+            // 否则会得到 NAN
             double c1 = sqrt(c2);
             double A_1 = 2 * atan((b + c1) / (a + tan_B));
             double A_2 = 2 * atan((b - c1) / (a + tan_B));
-            // TODO: check A_1, A_2 isnan
+            assert(!isnan(A_1));
+            assert(!isnan(A_2));
+
             double A_1_deg_d = rad2deg(A_1);
             double A_2_deg_d = rad2deg(A_2);
+            // 这里比较范围用 double，float 精度不够
+            // line 斜率比较大时，A_1, A_2 的误差比较敏感，有可能 A_1, A_2 跟端点的经度一样了
+            // FIXME: handle large slope
             A_1_ok = wp.lon < A_1_deg_d && A_1_deg_d < ep.lon;
             A_2_ok = wp.lon < A_2_deg_d && A_2_deg_d < ep.lon;
+
             A_1_deg = (float)A_1_deg_d;
             A_2_deg = (float)A_2_deg_d;
             // 可能精度不足，导致 A_1_deg == A_2_deg，当成相切处理
@@ -182,6 +201,7 @@ namespace geotools {
         }
     }
 
+    // 没用
     static uint32_t cut_ns(const GeoLine &line, float NS, GeoLine &n, GeoLine &s) {
         GeoLonLat np = line.src.lat < line.dst.lat ? line.dst : line.src;
         GeoLonLat sp = line.src.lat < line.dst.lat ? line.src : line.dst;
@@ -231,8 +251,10 @@ namespace geotools {
     }
 
     static void assert_box_contains(const GeoBox &box, const GeoLine &line) {
-        // 180 * 2^(-23) ≈ 2.1e-05
-        // 3e-5 / 360 * 40000 km ≈ 3.3 m
+        // float 里有 23 个 bit 表示小数
+        // float 表示经纬度误差度数：180 * 2^(-23) ≈ 2.1e-05
+        // 取一个稍微大一点的数 3e-5 作为比较经纬度的允许误差
+        // 对应的距离 3e-5 / 360 * 40000 km ≈ 3.3 m
         const float error = 3e-5;
 #ifdef TWOBLUECUBES_SINGLE_INCLUDE_CATCH_HPP_INCLUDED
         if (!box_contains_err(box, line.src, error) || !box_contains_err(box, line.dst, error)) {
@@ -283,8 +305,10 @@ namespace geotools {
 
     static EdgeNode *insert_rec(const EdgeInsertCtx &ctx, EdgeNode *node) {
         if (is_line_vertical(ctx.line)) {
-            // special case: vertical line
-            // NOTE: vertical line may be generated from cut_ns_ex due to float pointer error
+            // special case
+            // 上面很多计算都假设圆弧不平行经线，所以这个要特殊处理
+            // cut_ns_ex() 函数由于计算误差，可能把一根斜率比较大的圆弧变的平行于经线
+            // 所以这个 case 会随时出现
             return insert_rec_vertical(ctx, node);
         }
 
@@ -392,6 +416,8 @@ namespace geotools {
         assert(line.dst.is_valid());
 
         if (is_line_cross_180(line)) {
+            // 如果圆弧 line 两端的经度相差超过 180 度，那么 line 应该穿过 ±180 经线
+            // 由于 ±180 经线是边界，line 只能拆成两段
             GeoLine w, e;
             uint32_t flag = split_line_cross_180(line, w, e);
             if (flag & D_W) {

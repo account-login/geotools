@@ -61,6 +61,7 @@ namespace geotools {
     };
 
     struct EdgeTree {
+        // 树的层数，最下面一层是 leaf, precision 为 0 时树只有一层
         uint32_t precision;
         EdgeNode *root;
 
