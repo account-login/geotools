@@ -95,6 +95,16 @@ namespace geotools {
         return D_W | D_E;
     }
 
+    // wp, ep 分别是圆弧西边和东边的端点
+    // 判断圆弧于纬线的交点 (lon, lat) 是否在圆弧内部（不包括圆弧两端）
+    // 比较范围时 (lon, lat) 是 double，float 经度不够
+    static bool is_cross_on_arc(double lon, double lat, GeoLonLat wp, GeoLonLat ep) {
+        GeoLonLat cross((float)lon, (float)lat);
+        return wp.lon <= lon && lon <= ep.lon   // 这里用的闭区间
+                                                // 因为斜率很大时，lon 与圆弧两端重合，但 lat 不重合
+            && cross != wp && cross != ep;      // 再剔除与圆弧两端重合的交点
+    }
+
     // line 是一条不平行于经线的圆弧，可能被纬线 NS 分割。
     // line 所在的圆跟纬线 NS 有 3 种关系：不相交，有两个交点，相切
     // line 这段圆弧被纬线 NS 分割有 5 种情况：
@@ -146,8 +156,8 @@ namespace geotools {
             // 这里比较范围用 double，float 精度不够
             // line 斜率比较大时，A_1, A_2 的误差比较敏感，有可能 A_1, A_2 跟端点的经度一样了
             // FIXME: handle large slope
-            A_1_ok = wp.lon < A_1_deg_d && A_1_deg_d < ep.lon;
-            A_2_ok = wp.lon < A_2_deg_d && A_2_deg_d < ep.lon;
+            A_1_ok = is_cross_on_arc(A_1_deg_d, NS, wp, ep);
+            A_2_ok = is_cross_on_arc(A_2_deg_d, NS, wp, ep);
 
             A_1_deg = (float)A_1_deg_d;
             A_2_deg = (float)A_2_deg_d;
@@ -298,6 +308,7 @@ namespace geotools {
     }
 
     static bool is_line_vertical(const GeoLine &line) {
+        // TODO: consider slope
         return line.src.lon == line.dst.lon;
     }
 

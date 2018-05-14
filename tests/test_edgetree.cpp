@@ -398,10 +398,10 @@ TEST_CASE("insert.rand") {
 }
 
 TEST_CASE("cut_ns_ex.error") {
-    GeoLine line(100, 0, 100 + 1e-4f, 80);      // large slope
+    GeoLine line(0, 0, 0 + 1e-6f, 80);      // large slope
     uint32_t flags[3];
     GeoLine lines[3];
-    cut_ns_ex(line, 1e-8f, flags, lines);
+    cut_ns_ex(line, 1e-6, flags, lines);
 
     CHECK(flags[0] == D_N);
     CHECK(flags[1] == D_S);
@@ -409,11 +409,26 @@ TEST_CASE("cut_ns_ex.error") {
 
     CAPTURE(lines[0]);
     CAPTURE(lines[1]);
-
     CHECK(true);
-//    CHECK(lines[0].src.lon != lines[0].dst.lon);
-//    CHECK(lines[1].src.lon != lines[1].dst.lon);
 }
+
+TEST_CASE("cut_ns_ex.error-2") {
+    GeoLine line(170, 0, 170 + 1e-5f, 80);      // large slope
+    uint32_t flags[3];
+    GeoLine lines[3];
+    cut_ns_ex(line, 1e-6, flags, lines);
+
+    CHECK(flags[0] == D_N);
+    CHECK(flags[1] == D_S);
+    CHECK(flags[2] == D_NONE);
+
+    CAPTURE(lines[0]);
+    CAPTURE(lines[1]);
+    CHECK(true);
+}
+
+// TODO: test largest slope
+// TODO: test cut_ns on small slope
 
 //TEST_CASE("tmp") {
 //    GeoLine line(-172.764801f, -31.8126984f, -172.765045f, -31.9921875f);
