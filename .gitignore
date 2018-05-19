@@ -34,3 +34,4 @@
 # proj
 cmake-build-*
 .idea
+/build

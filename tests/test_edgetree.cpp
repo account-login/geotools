@@ -2,9 +2,12 @@
 
 #include <boost/assign/list_of.hpp>
 
-#include "catch.h"
+#include "doctest.h"
 #include "string_fmt.hpp"
 #include "../edgetree.cpp"
+
+
+#define SECTION(name) DOCTEST_SUBCASE(name)
 
 
 using namespace std;
@@ -12,6 +15,7 @@ using namespace geotools;
 
 using boost::assign::list_of;
 using boost::assign::map_list_of;
+using doctest::Approx;
 
 
 TEST_CASE("is_line_cross_180") {
@@ -128,26 +132,26 @@ namespace tz {
     }
 }
 
-namespace Catch {
+namespace doctest {
     template <>
     struct StringMaker<GeoBox> {
-        static std::string convert(const GeoBox &box) {
-            return tz::strfmt("GeoBox(%f, %f, %f, %f)", box.W, box.E, box.N, box.S);
+        static String convert(const GeoBox &box) {
+            return tz::strfmt("GeoBox(%f, %f, %f, %f)", box.W, box.E, box.N, box.S).c_str();
         }
     };
 
     template <>
     struct StringMaker<GeoLine> {
-        static std::string convert(const GeoLine &line) {
-            return tz::str(line);
+        static String convert(const GeoLine &line) {
+            return tz::str(line).c_str();
         }
     };
 
     typedef vector<GeoLine> GeoLineList;
     template <>
     struct StringMaker<GeoLineList> {
-        static std::string convert(const GeoLineList &lines) {
-            return tz::repr_set(lines, 1024);
+        static String convert(const GeoLineList &lines) {
+            return tz::repr_set(lines, 1024).c_str();
         }
     };
 }

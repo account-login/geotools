@@ -1,6 +1,6 @@
 #include <vector>
 
-#include "catch.h"
+#include "doctest.h"
 
 #include "../lruset.hpp"
 

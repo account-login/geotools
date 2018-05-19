@@ -13,8 +13,8 @@
 
 #include <boost/algorithm/string/replace.hpp>
 
-#define CATCH_CONFIG_RUNNER
-#include "catch.h"
+#define DOCTEST_CONFIG_IMPLEMENT
+#include "doctest.h"
 
 #include "string_fmt.hpp"
 #include "../geotree.hpp"
@@ -321,7 +321,7 @@ void bench_geo_density(
 Tree *g_tree = NULL;
 
 TEST_CASE("verify") {
-    REQUIRE(g_tree != NULL);
+    REQUIRE((g_tree != NULL));
     g_tree->verify();
 }
 
@@ -360,8 +360,11 @@ int main(int argc, char **argv) {
         info("verifying tree structure");
         try {
             const char *const c_args[4] = {"verify", "-d", "yes", NULL};
-            int result = Catch::Session().run(3, c_args);
+            int result = doctest::Context().run();
             info("verifying tree structure %s, result: %d", result == 0 ? "success" : "fail", result);
+            if (result != 0) {
+                return result;
+            }
         } catch (exception &exc) {
             err("exception caught: %s", exc.what());
             exit(4);

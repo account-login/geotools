@@ -4,9 +4,8 @@
 
 #include <boost/shared_ptr.hpp>
 #include <boost/assign/list_of.hpp>
-#include "catch.h"
+#include "doctest.h"
 
-#define private public
 #include "../geotree.hpp"
 
 
@@ -52,10 +51,10 @@ void verify_shape(Node *input, Node *expect) {
     boost::shared_ptr<Node> gc(expect);
 
     if (input == NULL) {
-        REQUIRE(expect == NULL);
+        REQUIRE((expect == NULL));
         return;
     } else {
-        REQUIRE(expect != NULL);
+        REQUIRE((expect != NULL));
     }
 
     REQUIRE(input->type == expect->type);

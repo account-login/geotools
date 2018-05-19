@@ -1,10 +1,12 @@
-#include "catch.h"
+#include "doctest.h"
 
 #include "../geoutil.hpp"
 
 
 using namespace std;
 using namespace geotools;
+
+using doctest::Approx;
 
 
 TEST_CASE("util") {

@@ -1,1 +1,1 @@
-tests/catch.* linguist-vendored
+tests/doctest* linguist-vendored

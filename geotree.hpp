@@ -467,7 +467,7 @@ namespace geotools {
         }
 
     // for tests
-#ifdef TWOBLUECUBES_SINGLE_INCLUDE_CATCH_HPP_INCLUDED
+#ifdef DOCTEST_LIBRARY_INCLUDED
     public:
         void verify() const {
             this->size();

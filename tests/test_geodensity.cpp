@@ -1,10 +1,12 @@
-#include "catch.h"
+#include "doctest.h"
 
 #include "../geodensity.hpp"
 
 
 using namespace std;
 using namespace geotools;
+
+using doctest::Approx;
 
 
 typedef GeoDensity::KeyType Key;

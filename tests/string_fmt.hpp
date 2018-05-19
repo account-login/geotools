@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <string>
+#include <sstream>
 #include <cstring>
 #include <cstdlib>
 #include <stdarg.h>  // For va_start, etc.

@@ -1,4 +1,4 @@
-#include "catch.h"
+#include "doctest.h"
 
 #include "../geodensity_bounded.hpp"
 
