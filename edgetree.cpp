@@ -109,10 +109,10 @@ namespace geotools {
     // line 所在的圆跟纬线 NS 有 3 种关系：不相交，有两个交点，相切
     // line 这段圆弧被纬线 NS 分割有 5 种情况：
     //      1. 不相交，line 要么在 NS 南边，要么在北边
-    //      1. 被割成南北 2 段
-    //      2. 被割成 3 段，如果 line 在北半球，两头在南边，中间在北边，如果 line 在南半球，方向相反
-    //      3. 相切，当成不相交处理
-    //      4. 重合，NS 是赤道的情况，也当成不相交处理
+    //      2. 被割成南北 2 段
+    //      3. 被割成 3 段，如果 line 在北半球，两头在南边，中间在北边，如果 line 在南半球，方向相反
+    //      4. 相切，当成不相交处理
+    //      5. 重合，NS 是赤道的情况，也当成不相交处理
     static void cut_ns_ex(const GeoLine &line, float NS, uint32_t flags[3], GeoLine lines[3])
     {
         flags[0] = flags[1] = flags[2] = D_NONE;
@@ -192,7 +192,7 @@ namespace geotools {
             lines[2].src = eap;
             lines[2].dst = ep;
         } else if (!A_1_ok && !A_2_ok) {
-            // 全部在南北，或者全部在北边
+            // 全部在南边，或者全部在北边
             // 由于计算有误差，可能这个圆弧在大部分北边，南边稍微有一段，但是算出交点却不足圆弧内部
             // 导致应该被分割的圆弧没有被分割，所以判断它在哪边时，不能用圆弧两端的纬度
             float mid_ns = (np.lat + sp.lat) / 2;
